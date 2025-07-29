@@ -1,0 +1,10 @@
+{
+  "name": "loanedge-tailwind",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npx tailwindcss -i ./input.css -o ./public/output.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.3.0"
+  }
+}
