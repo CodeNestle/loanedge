@@ -1,8 +1,16 @@
 services:
   - type: web
-    name: loanedge-app
+    name: loanedge
     env: docker
     plan: free
-    autoDeploy: true
-    buildCommand: docker build -t loanedge-app .
-    startCommand: apache2-foreground
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DB_HOST
+        value: bbjsyt2qngzdmsc9i2sf-mysql.services.clever-cloud.com
+      - key: DB_NAME
+        value: bbjsyt2qngzdmsc9i2sf
+      - key: DB_USER
+        value: uyv3tewru4w7q4um
+      - key: DB_PASS
+        value: oOMgobusKX5JszUZTL
