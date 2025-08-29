@@ -9,27 +9,28 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = (int)$_SESSION['user_id'];
 
 function accrue_monthly_interest(mysqli $db, array $loan): array {
-    $loan_id   = (int)$loan['id'];
-    $principal = (float)$loan['amount'];
-    $interest  = (float)$loan['interest'];
-    $rate_yr   = (float)$loan['interest_rate'];
+    $loan_id    = (int)$loan['id'];
+    $principal  = (float)$loan['amount'];
+    $interest   = (float)$loan['interest'];
+    $rate_yr    = (float)$loan['interest_rate'];
 
     $base_str = $loan['last_interest_calc'] ?: $loan['applied_date'];
-    $base_dt   = new DateTime($base_str);
-    $now_dt    = new DateTime();
+    $base_dt    = new DateTime($base_str);
+    $now_dt     = new DateTime();
     $days   = (int)$base_dt->diff($now_dt)->days;
     $months = intdiv($days, 30);
 
     if ($months > 0 && $principal > 0) {
         $monthly_pct = $rate_yr / 12.0;
-        $add_int     = ($principal * $monthly_pct / 100.0) * $months;
-        $new_int     = $interest + $add_int;
+        $add_int    = ($principal * $monthly_pct / 100.0) * $months;
+        $new_int    = $interest + $add_int;
 
         $new_last_dt = clone $base_dt;
         $new_last_dt->modify('+' . $months . ' month');
         $new_last    = $new_last_dt->format('Y-m-d');
 
-        $stmt = $db->prepare("UPDATE loans SET interest=?, last_interest_calc=?, updated_at=NOW() WHERE id=?");
+        // FIXED: Corrected the number of parameters and question marks
+        $stmt = $db->prepare("UPDATE loans SET interest=?, last_interest_calc=? WHERE id=?");
         $stmt->bind_param('dsi', $new_int, $new_last, $loan_id);
         $stmt->execute();
         $stmt->close();
@@ -48,7 +49,7 @@ function fetch_user_loans(mysqli $db, int $user_id): array {
             FROM loans l
             JOIN loan_types lt ON lt.id = l.loan_type_id
             JOIN users u ON u.id = l.user_id
-            WHERE l.user_id=? AND l.status IN ('pending','approved')
+            WHERE l.user_id=? AND l.status IN ('approved')
             ORDER BY l.applied_date DESC, l.id DESC";
     $stmt = $db->prepare($sql);
     $stmt->bind_param('i', $user_id);
@@ -68,7 +69,7 @@ function fetch_one_loan(mysqli $db, int $user_id, int $loan_id): ?array {
             FROM loans l
             JOIN loan_types lt ON lt.id = l.loan_type_id
             JOIN users u ON u.id = l.user_id
-            WHERE l.user_id=? AND l.id=? AND l.status IN ('pending','approved')
+            WHERE l.user_id=? AND l.id=? AND l.status IN ('approved')
             LIMIT 1";
     $stmt = $db->prepare($sql);
     $stmt->bind_param('ii', $user_id, $loan_id);
@@ -106,7 +107,7 @@ if ($selected_loan_id > 0) {
                 $paid_principal = min($remain, $principal);
                 $principal -= $paid_principal;
                 $new_status = ($principal <= 0.01 && $interest <= 0.01) ? 'closed' : $loan['status'];
-                $stmt = $mysqli->prepare("UPDATE loans SET amount=?, interest=?, status=?, updated_at=NOW() WHERE id=?");
+                $stmt = $mysqli->prepare("UPDATE loans SET amount=?, interest=?, status=? WHERE id=?");
                 $stmt->bind_param('ddsi', $principal, $interest, $new_status, $loan['id']);
                 $stmt->execute();
                 $stmt->close();
@@ -170,7 +171,7 @@ if ($selected_loan_id > 0) {
                     <form method="post" class="mt-6">
                         <input type="number" step="0.01" name="pay_amount" placeholder="Enter amount (₹)" required
                                class="w-full p-3 border border-gray-300 rounded-lg text-base
-                                      focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200 mb-4">
+                                       focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200 mb-4">
                         <button type="submit"
                                 class="w-full p-3 bg-blue-600 text-white border-none rounded-lg text-lg font-semibold cursor-pointer
                                        transition-all duration-250 hover:bg-blue-700 hover:shadow-md hover:scale-105">
@@ -185,12 +186,12 @@ if ($selected_loan_id > 0) {
             <div class="nav mt-8 text-center space-x-4">
                 <a href="pay_loan.php"
                    class="inline-block px-5 py-2 text-base no-underline text-blue-600 border border-blue-600 rounded-lg
-                          transition-all duration-200 hover:bg-blue-600 hover:text-white">
+                           transition-all duration-200 hover:bg-blue-600 hover:text-white">
                     Back to Loans
                 </a>
                 <a href="dashboard.php"
                    class="inline-block px-5 py-2 text-base no-underline text-blue-600 border border-blue-600 rounded-lg
-                          transition-all duration-200 hover:bg-blue-600 hover:text-white">
+                           transition-all duration-200 hover:bg-blue-600 hover:text-white">
                     Dashboard
                 </a>
             </div>
@@ -262,7 +263,7 @@ foreach ($loans as $i => $ln) {
                             <td class="py-3 px-4 text-sm">
                                 <a href="pay_loan.php?loan_id=<?php echo h($ln['id']); ?>"
                                    class="inline-block bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium no-underline
-                                          transition-all duration-200 hover:bg-blue-600 hover:shadow-md">
+                                           transition-all duration-200 hover:bg-blue-600 hover:shadow-md">
                                     Pay
                                 </a>
                             </td>
@@ -275,7 +276,7 @@ foreach ($loans as $i => $ln) {
     <div class="nav mt-8 text-center">
         <a href="dashboard.php"
            class="inline-block px-5 py-2 text-base no-underline text-blue-600 border border-blue-600 rounded-lg
-                  transition-all duration-200 hover:bg-blue-600 hover:text-white">
+                   transition-all duration-200 hover:bg-blue-600 hover:text-white">
             Back to Dashboard
         </a>
     </div>
